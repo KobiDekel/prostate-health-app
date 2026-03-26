@@ -7,98 +7,95 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @keyframes slideIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .notification-toast { animation: slideIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .meal-card { animation: fadeIn 0.5s ease-out forwards; }
     </style>
 </head>
 <body class="bg-slate-50 font-sans pb-32">
     <div class="max-w-md mx-auto min-h-screen relative">
-        <header class="bg-gradient-to-r from-blue-700 to-indigo-800 p-6 text-white rounded-b-[2rem] shadow-xl">
-            <div class="flex justify-between items-center mb-4">
-                <h1 class="text-xl font-bold">התוכנית היומית שלי</h1>
-                <span class="bg-blue-400/30 px-3 py-1 rounded-full text-[10px] font-bold">גליסון 3+4</span>
-            </div>
-            <div id="daily-progress" class="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
-                <p class="text-sm mb-2">הגנה רב-מערכתית היום:</p>
-                <div class="w-full bg-gray-300/30 h-2 rounded-full overflow-hidden">
+        <header class="bg-gradient-to-r from-blue-700 to-indigo-800 p-6 text-white rounded-b-[2rem] shadow-xl text-center">
+            <h1 class="text-xl font-bold mb-1">התוכנית היומית שלי</h1>
+            <p class="text-[10px] opacity-80 uppercase tracking-widest">מותאם אישית לגליסון 3+4</p>
+            
+            <div class="mt-4 bg-white/10 p-3 rounded-xl backdrop-blur-sm">
+                <div class="w-full bg-gray-300/30 h-1.5 rounded-full overflow-hidden">
                     <div id="progress-bar" class="bg-green-400 h-full w-0 transition-all duration-700"></div>
                 </div>
-                <div class="flex justify-between mt-2 text-[10px] opacity-80 font-medium">
-                    <span>כבד 💙</span><span>לב ❤️</span><span>מוח 🧠</span><span>כליה 🛡️</span>
-                </div>
+                <p class="text-[10px] mt-2 font-medium italic">הגנה על הלב, הכבד והערמונית</p>
             </div>
         </header>
 
-        <div id="smart-notification" class="hidden p-4 mx-5 -mt-4 bg-amber-50 border border-amber-200 rounded-xl shadow-md z-10 relative flex gap-3 items-center">
-            <div class="text-amber-500 text-xl"><i class="fas fa-lightbulb"></i></div>
-            <div>
-                <p class="text-[10px] font-bold text-amber-600">התראה חכמה</p>
-                <p id="notif-text" class="text-xs text-amber-900 leading-tight"></p>
-            </div>
+        <div id="smart-notification" class="hidden p-3 mx-5 -mt-3 bg-amber-50 border border-amber-200 rounded-xl shadow-lg z-10 relative flex gap-3 items-center">
+            <div class="text-amber-500 text-lg"><i class="fas fa-lightbulb"></i></div>
+            <p id="notif-text" class="text-[11px] text-amber-900 font-medium"></p>
         </div>
 
-        <main class="p-5 space-y-4" id="meals-container">
-            </main>
+        <main class="p-5 space-y-4">
+            <div id="loading-spinner" class="text-center py-20">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+                <p class="text-xs text-slate-500 mt-4 font-bold">ה-AI בונה עבורך תפריט מבוסס מחקר...</p>
+            </div>
 
-        <div id="success-summary" class="hidden p-6 mx-5 bg-green-50 border-2 border-green-500 rounded-2xl text-green-800 text-center shadow-lg">
-            <i class="fas fa-medal text-3xl mb-2 text-yellow-500"></i>
-            <h2 class="font-bold text-lg">עמדת ביעדים!</h2>
-            <p id="summary-text" class="text-sm italic"></p>
+            <div id="meals-list" class="space-y-4">
+                </div>
+        </main>
+
+        <div id="success-summary" class="hidden fixed bottom-10 left-0 right-0 p-5 mx-5 bg-green-600 text-white rounded-2xl shadow-2xl text-center z-50">
+            <h2 class="font-bold text-lg">כל הכבוד! 🏆</h2>
+            <p id="summary-text" class="text-xs opacity-90"></p>
         </div>
     </div>
 
     <script>
-        const meals = [
-            {
-                time: "בוקר", title: "שייק ירוק עם זרעי פשתן וכורכום",
-                cancer: "הליגנאנים בפשתן חוסמים קולטני אנדרוגן המזינים את תאי הגליסון.",
-                body: "הכורכום מגן על תפקודי הכבד ומפחית דלקתיות בכלי הדם.",
-                icon: "fa-leaf", color: "green"
-            },
-            {
-                time: "צהריים", title: "פסטה חיטה מלאה ברוטב עגבניות ושום",
-                cancer: "בישול העגבניות משחרר ליקופן שחודר לערמונית ומעכב חלוקת תאים.",
-                body: "השום מוריד לחץ דם ושומר על גמישות העורקים (לב וזיקפה).",
-                icon: "fa-utensils", color: "red"
-            },
-            {
-                time: "ערב", title: "סלט קינואה עם ברוקולי מאודה",
-                cancer: "הסולפוראפן בברוקולי מפעיל גנים נוגדי סרטן ישירים.",
-                body: "חומצות השומן תומכות בבריאות הממברנות במוח ובזיכרון.",
-                icon: "fa-bowl-rice", color: "indigo"
-            }
-        ];
+        async function loadMenu() {
+            const list = document.getElementById('meals-list');
+            const spinner = document.getElementById('loading-spinner');
+            
+            try {
+                // קריאה לשרת ה-API שלך ב-Vercel
+                // הכתובת /api/server היא נתיב ברירת המחדל של Vercel עבור קבצי שרת
+                const response = await fetch('/api/server?gleason=3+4');
+                const data = await response.json();
 
-        const notifications = [
-            "זה הזמן לכוס תה ירוק – הנימוק: פוליפנולים לשמירה על תאי הכליה ועיכוב הגידול.",
-            "הוסף סלק לארוחה: הניטרטים הטבעיים משפרים את זרימת הדם לכלי הדם הקטנים.",
-            "חופן אגוזי מלך עכשיו? מצוין לשיפור תפקוד האנדותל בכלי הדם."
-        ];
+                spinner.style.display = 'none';
 
-        function renderApp() {
-            const container = document.getElementById('meals-container');
-            meals.forEach((m, i) => {
-                container.innerHTML += `
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="flex items-center p-4 bg-slate-50/50 border-b">
-                            <input type="checkbox" onchange="updateProgress()" class="w-6 h-6 rounded-full border-2 border-blue-300 text-blue-600 focus:ring-blue-500">
-                            <div class="mr-3">
-                                <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">${m.time}</span>
-                                <h3 class="font-bold text-slate-800 text-sm">${m.title}</h3>
+                // הצגת הטיפ היומי
+                if(data.daily_tip) {
+                    document.getElementById('notif-text').innerText = data.daily_tip;
+                    document.getElementById('smart-notification').classList.remove('hidden');
+                }
+
+                // עיבוד הארוחות מה-JSON שה-AI החזיר
+                const mealKeys = ['morning', 'lunch', 'dinner']; // מותאם לפורמט ה-JSON הצפוי מהשרת
+                const mealTitles = ['ארוחת בוקר', 'ארוחת צהריים', 'ארוחת ערב'];
+                
+                // במידה וה-AI החזיר מערך או אובייקט, נמפה אותו לממשק
+                const menuItems = data.meals || [data.morning, data.lunch, data.dinner];
+
+                menuItems.forEach((meal, index) => {
+                    if(!meal) return;
+                    list.innerHTML += `
+                        <div class="meal-card bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div class="flex items-center p-4 bg-slate-50/50 border-b">
+                                <input type="checkbox" onchange="updateProgress()" class="w-6 h-6 rounded-full border-2 border-blue-300 text-blue-600">
+                                <div class="mr-3">
+                                    <span class="text-[9px] font-bold text-blue-600 uppercase tracking-widest">${mealTitles[index]}</span>
+                                    <h3 class="font-bold text-slate-800 text-sm">${meal.title}</h3>
+                                </div>
+                            </div>
+                            <div class="p-4 space-y-3">
+                                <p class="text-[11px] text-slate-700 leading-relaxed italic"><strong class="text-red-500">🛡️ עיכוב סרטן:</strong> ${meal.cancer_inhibition}</p>
+                                <hr class="opacity-30">
+                                <p class="text-[11px] text-slate-700 leading-relaxed"><strong class="text-blue-500">❤️ מערכות הגוף:</strong> ${meal.systemic_benefit}</p>
                             </div>
                         </div>
-                        <div class="p-4 space-y-3">
-                            <p class="text-xs text-slate-600"><strong class="text-red-500">🛡️ עיכוב סרטן:</strong> ${m.cancer}</p>
-                            <p class="text-xs text-slate-600"><strong class="text-blue-500">❤️ תחזוקה:</strong> ${m.body}</p>
-                        </div>
-                    </div>
-                `;
-            });
+                    `;
+                });
 
-            // הצגת התראה חכמה אקראית
-            const randomNotif = notifications[Math.floor(Math.random() * notifications.length)];
-            document.getElementById('notif-text').innerText = randomNotif;
-            setTimeout(() => document.getElementById('smart-notification').classList.remove('hidden'), 2000);
+            } catch (error) {
+                console.error("Fetch error:", error);
+                spinner.innerHTML = `<p class="text-red-500 text-xs font-bold">שגיאה בחיבור לשרת ה-AI. וודא שהגדרת API KEY.</p>`;
+            }
         }
 
         function updateProgress() {
@@ -109,11 +106,12 @@
             
             if(checked === total) {
                 document.getElementById('success-summary').classList.remove('hidden');
-                document.getElementById('summary-text').innerText = "היום הגנת על הלב שלך ב-80% ועל הכבד ב-100%! זרימת הדם במצב אופטימלי.";
+                document.getElementById('summary-text').innerText = "היום הגנת על הלב, הכבד והמוח. זרימת הדם במצב אופטימלי לעיכוב המחלה.";
+                setTimeout(() => document.getElementById('success-summary').classList.add('hidden'), 5000);
             }
         }
 
-        renderApp();
+        loadMenu();
     </script>
 </body>
 </html>
