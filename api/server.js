@@ -1,7 +1,11 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // אתחול ה-API עם המפתח המאובטח מהגדרות השרת
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY, "v1");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// אנחנו נגדיר את המודל בצורה שתעקוף את ה-v1beta
+const model = genAI.getGenerativeModel({ 
+  model: "gemini-1.5-flash" 
+}, { apiVersion: 'v1' });
 
 /**
  * פונקציה לבניית התפריט היומי המותאם אישית
