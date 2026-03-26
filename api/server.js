@@ -1,7 +1,7 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // אתחול ה-API עם המפתח המאובטח מהגדרות השרת
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY, "v1");
 
 /**
  * פונקציה לבניית התפריט היומי המותאם אישית
@@ -9,7 +9,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 async function generateProstateHealthMenu(gleasonScore = "3+4") {
   try {
     // שימוש במודל Gemini 1.5 Flash - מהיר ומדויק למשימות טקסט
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
       אתה מומחה תזונה אונקולוגית המתבסס על ה-Notebook של המשתמש. 
