@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gleason Care AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @keyframes slideIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .notification-toast { animation: slideIn 0.5s ease-out; }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans pb-32">
+    <div class="max-w-md mx-auto min-h-screen relative">
+        <header class="bg-gradient-to-r from-blue-700 to-indigo-800 p-6 text-white rounded-b-[2rem] shadow-xl">
+            <div class="flex justify-between items-center mb-4">
+                <h1 class="text-xl font-bold">התוכנית היומית שלי</h1>
+                <span class="bg-blue-400/30 px-3 py-1 rounded-full text-[10px] font-bold">גליסון 3+4</span>
+            </div>
+            <div id="daily-progress" class="bg-white/10 p-4 rounded-xl backdrop-blur-sm">
+                <p class="text-sm mb-2">הגנה רב-מערכתית היום:</p>
+                <div class="w-full bg-gray-300/30 h-2 rounded-full overflow-hidden">
+                    <div id="progress-bar" class="bg-green-400 h-full w-0 transition-all duration-700"></div>
+                </div>
+                <div class="flex justify-between mt-2 text-[10px] opacity-80 font-medium">
+                    <span>כבד 💙</span><span>לב ❤️</span><span>מוח 🧠</span><span>כליה 🛡️</span>
+                </div>
+            </div>
+        </header>
+
+        <div id="smart-notification" class="hidden p-4 mx-5 -mt-4 bg-amber-50 border border-amber-200 rounded-xl shadow-md z-10 relative flex gap-3 items-center">
+            <div class="text-amber-500 text-xl"><i class="fas fa-lightbulb"></i></div>
+            <div>
+                <p class="text-[10px] font-bold text-amber-600">התראה חכמה</p>
+                <p id="notif-text" class="text-xs text-amber-900 leading-tight"></p>
+            </div>
+        </div>
+
+        <main class="p-5 space-y-4" id="meals-container">
+            </main>
+
+        <div id="success-summary" class="hidden p-6 mx-5 bg-green-50 border-2 border-green-500 rounded-2xl text-green-800 text-center shadow-lg">
+            <i class="fas fa-medal text-3xl mb-2 text-yellow-500"></i>
+            <h2 class="font-bold text-lg">עמדת ביעדים!</h2>
+            <p id="summary-text" class="text-sm italic"></p>
+        </div>
+    </div>
+
+    <script>
+        const meals = [
+            {
+                time: "בוקר", title: "שייק ירוק עם זרעי פשתן וכורכום",
+                cancer: "הליגנאנים בפשתן חוסמים קולטני אנדרוגן המזינים את תאי הגליסון.",
+                body: "הכורכום מגן על תפקודי הכבד ומפחית דלקתיות בכלי הדם.",
+                icon: "fa-leaf", color: "green"
+            },
+            {
+                time: "צהריים", title: "פסטה חיטה מלאה ברוטב עגבניות ושום",
+                cancer: "בישול העגבניות משחרר ליקופן שחודר לערמונית ומעכב חלוקת תאים.",
+                body: "השום מוריד לחץ דם ושומר על גמישות העורקים (לב וזיקפה).",
+                icon: "fa-utensils", color: "red"
+            },
+            {
+                time: "ערב", title: "סלט קינואה עם ברוקולי מאודה",
+                cancer: "הסולפוראפן בברוקולי מפעיל גנים נוגדי סרטן ישירים.",
+                body: "חומצות השומן תומכות בבריאות הממברנות במוח ובזיכרון.",
+                icon: "fa-bowl-rice", color: "indigo"
+            }
+        ];
+
+        const notifications = [
+            "זה הזמן לכוס תה ירוק – הנימוק: פוליפנולים לשמירה על תאי הכליה ועיכוב הגידול.",
+            "הוסף סלק לארוחה: הניטרטים הטבעיים משפרים את זרימת הדם לכלי הדם הקטנים.",
+            "חופן אגוזי מלך עכשיו? מצוין לשיפור תפקוד האנדותל בכלי הדם."
+        ];
+
+        function renderApp() {
+            const container = document.getElementById('meals-container');
+            meals.forEach((m, i) => {
+                container.innerHTML += `
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="flex items-center p-4 bg-slate-50/50 border-b">
+                            <input type="checkbox" onchange="updateProgress()" class="w-6 h-6 rounded-full border-2 border-blue-300 text-blue-600 focus:ring-blue-500">
+                            <div class="mr-3">
+                                <span class="text-[10px] font-bold text-blue-600 uppercase tracking-widest">${m.time}</span>
+                                <h3 class="font-bold text-slate-800 text-sm">${m.title}</h3>
+                            </div>
+                        </div>
+                        <div class="p-4 space-y-3">
+                            <p class="text-xs text-slate-600"><strong class="text-red-500">🛡️ עיכוב סרטן:</strong> ${m.cancer}</p>
+                            <p class="text-xs text-slate-600"><strong class="text-blue-500">❤️ תחזוקה:</strong> ${m.body}</p>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // הצגת התראה חכמה אקראית
+            const randomNotif = notifications[Math.floor(Math.random() * notifications.length)];
+            document.getElementById('notif-text').innerText = randomNotif;
+            setTimeout(() => document.getElementById('smart-notification').classList.remove('hidden'), 2000);
+        }
+
+        function updateProgress() {
+            const total = document.querySelectorAll('input[type="checkbox"]').length;
+            const checked = Array.from(document.querySelectorAll('input[type="checkbox"]')).filter(c => c.checked).length;
+            const percentage = (checked / total) * 100;
+            document.getElementById('progress-bar').style.width = percentage + '%';
+            
+            if(checked === total) {
+                document.getElementById('success-summary').classList.remove('hidden');
+                document.getElementById('summary-text').innerText = "היום הגנת על הלב שלך ב-80% ועל הכבד ב-100%! זרימת הדם במצב אופטימלי.";
+            }
+        }
+
+        renderApp();
+    </script>
+</body>
+</html>
