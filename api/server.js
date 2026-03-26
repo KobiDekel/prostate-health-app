@@ -1,63 +1,41 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const fetch = require('node-fetch');
 
-// אתחול ה-API עם המפתח המאובטח מהגדרות השרת
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-// אנחנו נגדיר את המודל בצורה שתעקוף את ה-v1beta
-const model = genAI.getGenerativeModel({ 
-  model: "gemini-1.5-flash" 
-}, { apiVersion: 'v1' });
-
-/**
- * פונקציה לבניית התפריט היומי המותאם אישית
- */
-async function generateProstateHealthMenu(gleasonScore = "3+4") {
-  try {
-    // שימוש במודל Gemini 1.5 Flash - מהיר ומדויק למשימות טקסט
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-    const prompt = `
-      אתה מומחה תזונה אונקולוגית המתבסס על ה-Notebook של המשתמש. 
-      תפקידך לבנות תפריט יומי לגבר עם גליסון ${gleasonScore}. 
-      
-      עבור כל מנה (בוקר, צהריים, ערב), עליך לספק בפורמט JSON:
-      1. title: כותרת המנה.
-      2. cancer_inhibition: נימוק מדעי על המנגנון שמעכב את התפתחות הסרטן.
-      3. systemic_benefit: נימוק איך המנה תורמת לשימור מערכות (לב, כבד, כליה, מוח) ושיפור הזיקפה (זרימת דם).
-      
-      בנוסף, צור שדה בשם "daily_tip" הכולל 'טיפ התראה' קצר לאמצע היום (למשל על תה ירוק או אגוזים).
-      
-      השב בעברית בלבד. 
-      החזר אך ורק אובייקט JSON תקין ללא טקסט נוסף לפניו או אחריו.
-    `;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    // ניקוי תגיות Markdown אם ה-AI הוסיף אותן בטעות
-    const jsonString = text.replace(/```json|```/g, "").trim();
-    
-    return JSON.parse(jsonString);
-  } catch (error) {
-    console.error("Error generating menu:", error);
-    return { error: "נכשלה בניית התפריט. אנא נסה שוב." };
-  }
-}
-
-// הגדרת ה-Endpoint עבור האפליקציה (Vercel Serverless Function)
 module.exports = async (req, res) => {
-  // הגדרת Headers כדי לאפשר לאפליקציה לגשת לשרת (CORS)
+  // הגדרת כותרות CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
 
-  const { gleason } = req.query;
-  const menu = await generateProstateHealthMenu(gleason || "3+4");
-  
-  res.status(200).json(menu);
+  const API_KEY = process.env.GEMINI_API_KEY;
+  // שימוש בנתיב היציב v1 ובמודל 1.5-flash
+  const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+
+  try {
+    const prompt = "צור תפריט יומי בריאותי המבוסס על מחקרי סרטן הערמונית. כלול ארוחת בוקר, צהריים וערב עם הסבר קצר על היתרון המחקרי של כל מרכיב. החזר את התשובה בפורמט JSON נקי.";
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+
+    const aiText = data.candidates[0].content.parts[0].text;
+    res.status(200).json({ menu: aiText });
+
+  } catch (error) {
+    console.error("Direct API Error:", error.message);
+    res.status(500).json({ error: "שגיאה ביצירת התפריט", details: error.message });
+  }
 };
