@@ -10,10 +10,11 @@ module.exports = async (req, res) => {
   const API_KEY = process.env.GEMINI_API_KEY;
   const prompt = "צור תפריט יומי בריאותי לסרטן הערמונית (ליקופן, סולפוראפן). החזר JSON עם מפתח menu.";
   
-  // רשימת כתובות אפשריות - השרת ינסה אותן לפי הסדר
+  // רשימת הכתובות המדויקות ביותר שגוגל דורשת
   const urls = [
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
-    `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${API_KEY}`
   ];
 
   for (let url of urls) {
@@ -36,5 +37,5 @@ module.exports = async (req, res) => {
     }
   }
 
-  res.status(500).json({ error: "כל הניסיונות להתחבר לגוגל נכשלו. בדוק את המפתח ב-Vercel." });
+  res.status(500).json({ error: "כל הניסיונות להתחבר לגוגל נכשלו. וודא שהמפתח ב-Vercel תקין ומתחיל ב-AIza." });
 };
