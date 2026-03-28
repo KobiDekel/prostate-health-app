@@ -10,11 +10,10 @@ module.exports = async (req, res) => {
   const API_KEY = process.env.GEMINI_API_KEY;
   const prompt = "צור תפריט יומי בריאותי לסרטן הערמונית (ליקופן, סולפוראפן). החזר JSON עם מפתח menu.";
   
-  // רשימת הכתובות המדויקות ביותר שגוגל דורשת
+  // רשימת הכתובות המדויקות שגוגל דורשת - ננסה את כולן
   const urls = [
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`,
-    `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${API_KEY}`
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`
   ];
 
   for (let url of urls) {
@@ -31,11 +30,11 @@ module.exports = async (req, res) => {
         const text = data.candidates[0].content.parts[0].text;
         return res.status(200).json({ menu: text });
       }
-      console.log(`Failed URL ${url}:`, data.error?.message);
+      console.error(`Attempt failed for ${url}:`, data.error?.message);
     } catch (e) {
-      console.log(`Error on ${url}:`, e.message);
+      console.error(`Network error for ${url}:`, e.message);
     }
   }
 
-  res.status(500).json({ error: "כל הניסיונות להתחבר לגוגל נכשלו. וודא שהמפתח ב-Vercel תקין ומתחיל ב-AIza." });
+  res.status(500).json({ error: "Connection to Gemini failed. Please check your API Key in Vercel." });
 };
