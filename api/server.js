@@ -11,11 +11,24 @@ module.exports = async (req, res) => {
   }
 
   const API_KEY = process.env.GEMINI_API_KEY;
-  // שימוש בנתיב היציב v1 ובמודל 1.5-flash
-const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${API_KEY}`;
+  // שימוש בנתיב היציב v1 ובמודל gemini-1.5-flash-latest
+  const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
 
   try {
-    const prompt = "צור תפריט יומי בריאותי המבוסס על מחקרי סרטן הערמונית. כלול ארוחת בוקר, צהריים וערב עם הסבר קצר על היתרון המחקרי של כל מרכיב. החזר את התשובה בפורמט JSON נקי.";
+    // הנחיה מפורטת המבוססת על המקורות ב-NotebookLM (נושאים כלליים)
+    const prompt = `
+      אתה מומחה תזונה קלינית המתמחה בסרטן הערמונית. 
+      צור תפריט יומי המבוסס על העקרונות המחקריים הבאים שנמצאו במקורות שלי (NotebookLM - נושאים כלליים):
+      1. דגש על צריכת ליקופן (עגבניות מבושלות).
+      2. שילוב סולפוראפן (ירקות מצליבים כמו ברוקולי וכרובית).
+      3. העדפת דגנים מלאים וקטניות על פני פחמימות ריקות.
+      4. צמצום מוצרי חלב ובשר אדום.
+      5. שימוש בשומנים בריאים (שמן זית, אגוזי מלך).
+
+      התפריט צריך לכלול: ארוחת בוקר, צהריים, ערב ו-2 ארוחות ביניים.
+      לכל מנה, הוסף משפט אחד שמסביר את היתרון המחקרי שלה לבריאות הערמונית.
+      החזר את התשובה בפורמט JSON נקי שבו המפתח הוא "menu".
+    `;
 
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -31,8 +44,13 @@ const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:
       throw new Error(data.error.message);
     }
 
-    const aiText = data.candidates[0].content.parts[0].text;
-    res.status(200).json({ menu: aiText });
+    // שליפת הטקסט מה-AI
+    let aiText = data.candidates[0].content.parts[0].text;
+    
+    // ניקוי תגיות markdown אם ה-AI הוסיף אותן
+    aiText = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    res.status(200).json(JSON.parse(aiText));
 
   } catch (error) {
     console.error("Direct API Error:", error.message);
