@@ -13,6 +13,8 @@ module.exports = async (req, res) => {
   const API_KEY = process.env.GEMINI_API_KEY;
   // שימוש בנתיב היציב v1 ובמודל gemini-1.5-flash-latest
   const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+
+  try {
     // הנחיה מפורטת המבוססת על המקורות ב-NotebookLM (נושאים כלליים)
     const prompt = `
       אתה מומחה תזונה קלינית המתמחה בסרטן הערמונית. 
