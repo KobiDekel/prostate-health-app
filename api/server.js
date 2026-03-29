@@ -49,7 +49,6 @@ module.exports = async (req, res) => {
     const jsonStart = text.indexOf('{');
     const jsonEnd = text.lastIndexOf('}') + 1;
     const cleanJson = text.substring(jsonStart, jsonEnd);
-    
     res.status(200).json(JSON.parse(cleanJson));
 
   } catch (error) {
