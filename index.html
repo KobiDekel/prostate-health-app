@@ -3,120 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gleason Care AI</title>
+    <title>תוכנית שבועית - Gleason Care</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .meal-card { animation: fadeIn 0.5s ease-out forwards; }
-    </style>
 </head>
-<body class="bg-slate-50 font-sans pb-32">
-    <div class="max-w-md mx-auto min-h-screen relative">
-        <header class="bg-gradient-to-r from-blue-700 to-indigo-800 p-6 text-white rounded-b-[2rem] shadow-xl text-center">
-            <h1 class="text-xl font-bold mb-1">התוכנית היומית שלי</h1>
-            <p class="text-[10px] opacity-80 uppercase tracking-widest">מותאם אישית לגליסון 3+4</p>
-            
-            <div class="mt-4 bg-white/10 p-3 rounded-xl backdrop-blur-sm">
-                <div class="w-full bg-gray-300/30 h-1.5 rounded-full overflow-hidden">
-                    <div id="progress-bar" class="bg-green-400 h-full w-0 transition-all duration-700"></div>
+<body class="bg-slate-50 font-sans pb-10">
+    <div class="max-w-md mx-auto min-h-screen">
+        <header class="bg-indigo-900 p-6 text-white rounded-b-3xl shadow-lg text-center">
+            <h1 class="text-xl font-bold">תפריט שבועי מותאם</h1>
+            <div id="day-selector" class="flex justify-between mt-4 overflow-x-auto gap-2 pb-2">
                 </div>
-                <p class="text-[10px] mt-2 font-medium italic">הגנה על הלב, הכבד והערמונית</p>
-            </div>
         </header>
 
-        <div id="smart-notification" class="hidden p-3 mx-5 -mt-3 bg-amber-50 border border-amber-200 rounded-xl shadow-lg z-10 relative flex gap-3 items-center">
-            <div class="text-amber-500 text-lg"><i class="fas fa-lightbulb"></i></div>
-            <p id="notif-text" class="text-[11px] text-amber-900 font-medium"></p>
-        </div>
-
-        <main class="p-5 space-y-4">
-            <div id="loading-spinner" class="text-center py-20">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
-                <p class="text-xs text-slate-500 mt-4 font-bold">ה-AI בונה עבורך תפריט מבוסס מחקר...</p>
+        <main class="p-5">
+            <div id="loading" class="text-center py-10">
+                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-900 mx-auto"></div>
+                <p class="mt-4">בונה תוכנית ל-7 ימים...</p>
             </div>
 
-            <div id="meals-list" class="space-y-4">
-                </div>
+            <div id="day-content" class="hidden">
+                <div id="daily-tip-box" class="bg-amber-50 p-4 rounded-2xl border border-amber-200 mb-6 text-sm italic text-amber-900"></div>
+                <div id="meals-container" class="space-y-4"></div>
+            </div>
         </main>
-
-        <div id="success-summary" class="hidden fixed bottom-10 left-0 right-0 p-5 mx-5 bg-green-600 text-white rounded-2xl shadow-2xl text-center z-50">
-            <h2 class="font-bold text-lg">כל הכבוד! 🏆</h2>
-            <p id="summary-text" class="text-xs opacity-90"></p>
-        </div>
     </div>
 
     <script>
-        async function loadMenu() {
-            const list = document.getElementById('meals-list');
-            const spinner = document.getElementById('loading-spinner');
-            
+        let weeklyPlan = [];
+
+        async function init() {
             try {
-                // קריאה לשרת ה-API שלך
-                const response = await fetch('/api/server?gleason=3+4');
-                const data = await response.json();
-
-                spinner.style.display = 'none';
-
-                // הצגת הטיפ היומי
-                if(data.daily_tip) {
-                    document.getElementById('notif-text').innerText = data.daily_tip;
-                    document.getElementById('smart-notification').classList.remove('hidden');
-                }
-
-                // עיבוד הארוחות
-                const mealTitles = ['ארוחת בוקר', 'ארוחת צהריים', 'ארוחת ערב'];
-                const menuItems = data.meals || [];
-
-                menuItems.forEach((meal, index) => {
-                    if(!meal) return;
-                    list.innerHTML += `
-                        <div class="meal-card bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-4">
-                            <div class="flex items-center p-4 bg-slate-50/50 border-b">
-                                <input type="checkbox" onchange="updateProgress()" class="w-6 h-6 rounded-full border-2 border-blue-300 text-blue-600">
-                                <div class="mr-3">
-                                    <span class="text-[9px] font-bold text-blue-600 uppercase tracking-widest">${mealTitles[index] || 'ארוחה'}</span>
-                                    <h3 class="font-bold text-slate-800 text-sm">${meal.title}</h3>
-                                </div>
-                            </div>
-                            <div class="p-4 space-y-3">
-                                <p class="text-[11px] text-slate-700 leading-relaxed italic">
-                                    <strong class="text-blue-600">🧪 הרכב חומרים:</strong> ${meal.ingredients_logic || 'מידע לא זמין'}
-                                </p>
-                                <hr class="opacity-30">
-                                <p class="text-[11px] text-slate-700 leading-relaxed">
-                                    <strong class="text-red-500">🛡️ עיכוב סרטן:</strong> ${meal.cancer_inhibition || 'מידע לא זמין'}
-                                </p>
-                                <hr class="opacity-30">
-                                <p class="text-[11px] text-slate-700 leading-relaxed">
-                                    <strong class="text-emerald-600">❤️ לב וכלי דם:</strong> ${meal.cardio_benefit || 'מידע לא זמין'}
-                                </p>
-                            </div>
-                        </div>
-                    `;
-                });
-
-            } catch (error) {
-                console.error("Fetch error:", error);
-                spinner.innerHTML = `<p class="text-red-500 text-xs font-bold">שגיאה בטעינת התפריט. נסה לרענן.</p>`;
+                const res = await fetch('/api/server');
+                const data = await res.json();
+                weeklyPlan = data.weekly_plan;
+                
+                renderDaySelector();
+                showDay(1);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('day-content').style.display = 'block';
+            } catch (e) {
+                alert("שגיאה בטעינת הנתונים");
             }
         }
 
-        function updateProgress() {
-            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-            const total = checkboxes.length;
-            const checked = Array.from(checkboxes).filter(c => c.checked).length;
-            const percentage = (checked / total) * 100;
-            document.getElementById('progress-bar').style.width = percentage + '%';
+        function renderDaySelector() {
+            const selector = document.getElementById('day-selector');
+            for(let i=1; i<=7; i++) {
+                selector.innerHTML += `<button onclick="showDay(${i})" id="btn-day-${i}" class="bg-white/20 px-4 py-2 rounded-xl text-sm min-w-[60px]">יום ${i}</button>`;
+            }
+        }
+
+        function showDay(dayNum) {
+            const dayData = weeklyPlan.find(d => d.day_number === dayNum);
+            if(!dayData) return;
+
+            // עדכון כפתורים
+            document.querySelectorAll('#day-selector button').forEach(b => b.classList.replace('bg-white', 'bg-white/20'));
+            document.querySelectorAll('#day-selector button').forEach(b => b.classList.remove('text-indigo-900', 'font-bold'));
+            const activeBtn = document.getElementById(`btn-day-${dayNum}`);
+            activeBtn.classList.replace('bg-white/20', 'bg-white');
+            activeBtn.classList.add('text-indigo-900', 'font-bold');
+
+            document.getElementById('daily-tip-box').innerHTML = `<strong>💡 טיפ היום:</strong> ${dayData.daily_tip}`;
             
-            if(checked === total && total > 0) {
-                document.getElementById('success-summary').classList.remove('hidden');
-                document.getElementById('summary-text').innerText = "היום הגנת על הלב, הכבד והערמונית באופן אופטימלי!";
-                setTimeout(() => document.getElementById('success-summary').classList.add('hidden'), 5000);
-            }
+            const container = document.getElementById('meals-container');
+            container.innerHTML = '';
+            dayData.meals.forEach(meal => {
+                container.innerHTML += `
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                        <h3 class="font-bold text-indigo-800 border-b pb-2 mb-3">${meal.title}</h3>
+                        <p class="text-xs mb-2"><strong>🧪 שילוב חומרים:</strong> ${meal.ingredients_logic}</p>
+                        <p class="text-xs mb-2 text-red-600"><strong>🛡️ עיכוב סרטן:</strong> ${meal.cancer_inhibition}</p>
+                        <p class="text-xs text-emerald-600"><strong>❤️ לב וכלי דם:</strong> ${meal.cardio_benefit}</p>
+                    </div>
+                `;
+            });
         }
 
-        loadMenu();
+        init();
     </script>
 </body>
 </html>
