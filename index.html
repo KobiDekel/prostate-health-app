@@ -6,84 +6,127 @@
     <title>תוכנית שבועית - Gleason Care</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .meal-card { animation: fadeIn 0.4s ease-out forwards; }
+        ::-webkit-scrollbar { display: none; }
+    </style>
 </head>
 <body class="bg-slate-50 font-sans pb-10">
-    <div class="max-w-md mx-auto min-h-screen">
-        <header class="bg-indigo-900 p-6 text-white rounded-b-3xl shadow-lg text-center">
-            <h1 class="text-xl font-bold">תפריט שבועי מותאם</h1>
-            <div id="day-selector" class="flex justify-between mt-4 overflow-x-auto gap-2 pb-2">
+    <div class="max-w-md mx-auto min-h-screen relative">
+        <header class="bg-indigo-900 p-6 text-white rounded-b-[2rem] shadow-xl text-center">
+            <h1 class="text-xl font-bold mb-2">התוכנית השבועית שלי</h1>
+            <p class="text-[10px] opacity-70 uppercase tracking-widest mb-4">מבוסס מחקר ומקורות NotebookLM</p>
+            
+            <div id="day-selector" class="flex overflow-x-auto gap-2 py-2 px-1 no-scrollbar">
                 </div>
         </header>
 
         <main class="p-5">
-            <div id="loading" class="text-center py-10">
-                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-900 mx-auto"></div>
-                <p class="mt-4">בונה תוכנית ל-7 ימים...</p>
+            <div id="loading" class="text-center py-20">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-indigo-900 border-t-transparent"></div>
+                <p class="text-xs text-slate-500 mt-4 font-bold">טוען את נתוני המחקר...</p>
             </div>
 
-            <div id="day-content" class="hidden">
-                <div id="daily-tip-box" class="bg-amber-50 p-4 rounded-2xl border border-amber-200 mb-6 text-sm italic text-amber-900"></div>
-                <div id="meals-container" class="space-y-4"></div>
+            <div id="day-content" class="hidden space-y-4">
+                <div id="daily-tip-box" class="bg-amber-50 p-4 rounded-2xl border border-amber-200 text-sm italic text-amber-900 shadow-sm mb-6"></div>
+                <div id="meals-container" class="space-y-4">
+                    </div>
             </div>
         </main>
     </div>
 
     <script>
-    let weeklyPlan = [];
+        let weeklyPlan = [];
 
-    async function init() {
-        const loading = document.getElementById('loading');
-        try {
-            const res = await fetch('/api/server');
-            if (!res.ok) throw new Error();
-            const data = await res.json();
-            weeklyPlan = data.weekly_plan;
+        async function init() {
+            const loading = document.getElementById('loading');
+            const content = document.getElementById('day-content');
             
-            renderDaySelector();
-            showDay(1);
-            loading.style.display = 'none';
-            document.getElementById('day-content').style.display = 'block';
-        } catch (e) {
-            loading.innerHTML = '<p class="text-red-500">הטעינה לוקחת זמן... נסה לרענן את הדף</p>';
+            try {
+                // קריאה לקובץ data.json דרך השרת
+                const res = await fetch('/api/server');
+                if (!res.ok) throw new Error("Server error");
+                
+                const data = await res.json();
+                weeklyPlan = data.weekly_plan;
+                
+                renderDaySelector();
+                showDay(1); // הצגת יום 1 כברירת מחדל
+                
+                loading.style.display = 'none';
+                content.style.display = 'block';
+            } catch (e) {
+                loading.innerHTML = `
+                    <p class="text-red-500 font-bold">שגיאה בטעינה</p>
+                    <p class="text-[10px] text-slate-400">וודא שקובץ data.json קיים בשרת</p>
+                    <button onclick="location.reload()" class="mt-4 text-xs bg-indigo-900 text-white px-4 py-2 rounded-lg">נסה שוב</button>
+                `;
+            }
         }
-    }
 
-    function renderDaySelector() {
-        const selector = document.getElementById('day-selector');
-        selector.innerHTML = '';
-        for(let i=1; i<=7; i++) {
-            selector.innerHTML += `<button onclick="showDay(${i})" id="btn-day-${i}" class="bg-white/20 text-white px-4 py-2 rounded-xl text-sm min-w-[60px] ml-2">יום ${i}</button>`;
+        function renderDaySelector() {
+            const selector = document.getElementById('day-selector');
+            selector.innerHTML = '';
+            for(let i=1; i<=7; i++) {
+                const btn = document.createElement('button');
+                btn.id = `btn-day-${i}`;
+                btn.className = "bg-white/10 text-white px-5 py-2 rounded-xl text-sm min-w-[75px] transition-all border border-white/5";
+                btn.innerText = `יום ${i}`;
+                btn.onclick = () => showDay(i);
+                selector.appendChild(btn);
+            }
         }
-    }
 
-    function showDay(dayNum) {
-        const dayData = weeklyPlan.find(d => d.day === dayNum);
-        if(!dayData) return;
+        function showDay(dayNum) {
+            const dayData = weeklyPlan.find(d => d.day === dayNum);
+            if(!dayData) return;
 
-        document.querySelectorAll('#day-selector button').forEach(b => {
-            b.classList.remove('bg-white', 'text-indigo-900', 'font-bold');
-            b.classList.add('bg-white/20', 'text-white');
-        });
-        const activeBtn = document.getElementById(`btn-day-${dayNum}`);
-        activeBtn.classList.replace('bg-white/20', 'bg-white');
-        activeBtn.classList.replace('text-white', 'text-indigo-900');
-        activeBtn.classList.add('font-bold');
+            // עדכון כפתורי הסרגל
+            document.querySelectorAll('#day-selector button').forEach(b => {
+                b.className = "bg-white/10 text-white px-5 py-2 rounded-xl text-sm min-w-[75px] transition-all border border-white/5";
+            });
+            const activeBtn = document.getElementById(`btn-day-${dayNum}`);
+            if(activeBtn) {
+                activeBtn.className = "bg-white text-indigo-900 px-5 py-2 rounded-xl text-sm min-w-[75px] font-bold shadow-md";
+            }
 
-        document.getElementById('daily-tip-box').innerHTML = `<strong>💡 טיפ היום:</strong> ${dayData.tip}`;
-        
-        const container = document.getElementById('meals-container');
-        container.innerHTML = '';
-        dayData.meals.forEach(meal => {
-            container.innerHTML += `
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-4">
-                    <h3 class="font-bold text-indigo-800 border-b pb-2 mb-3">${meal.t}</h3>
-                    <p class="text-[11px] mb-2"><strong>🧪 שילוב חומרים:</strong> ${meal.l}</p>
-                    <p class="text-[11px] mb-2 text-red-600"><strong>🛡️ עיכוב סרטן:</strong> ${meal.ci}</p>
-                    <p class="text-[11px] text-emerald-600"><strong>❤️ לב וכלי דם:</strong> ${meal.cb}</p>
-                </div>`;
-        });
-    }
-    init();
-</script>
+            // הצגת טיפ היום
+            document.getElementById('daily-tip-box').innerHTML = `<strong>💡 טיפ היום:</strong> ${dayData.tip}`;
+            
+            // הצגת ארוחות
+            const container = document.getElementById('meals-container');
+            container.innerHTML = '';
+            
+            dayData.meals.forEach((meal, index) => {
+                container.innerHTML += `
+                    <div class="meal-card bg-white p-5 rounded-2xl shadow-sm border border-slate-200 transition-all hover:shadow-md">
+                        <div class="flex items-center mb-3">
+                            <span class="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-md ml-3 uppercase">ארוחה ${index + 1}</span>
+                            <h3 class="font-bold text-slate-800 text-sm">${meal.t}</h3>
+                        </div>
+                        <div class="space-y-3">
+                            <p class="text-[11px] text-slate-600 leading-relaxed italic">
+                                <strong class="text-indigo-600">🧪 שילוב חומרים:</strong> ${meal.l}
+                            </p>
+                            <div class="grid grid-cols-1 gap-2 pt-2 border-t border-slate-50">
+                                <p class="text-[11px] text-slate-700">
+                                    <strong class="text-red-500">🛡️ עיכוב סרטן:</strong> ${meal.ci}
+                                </p>
+                                <p class="text-[11px] text-slate-700">
+                                    <strong class="text-emerald-600">❤️ לב וכלי דם:</strong> ${meal.cb}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            // גלילה חלקה לראש הדף בתוך המכשיר
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        init();
+    </script>
 </body>
 </html>
