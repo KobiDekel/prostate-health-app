@@ -10,14 +10,17 @@ module.exports = async (req, res) => {
   const API_KEY = process.env.GEMINI_API_KEY;
   const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-  const prompt = `Return a JSON object for a Gleason 3+4 patient with exactly this structure:
+  const prompt = `Return ONLY a valid JSON object in Hebrew for a Gleason 3+4 patient. 
+  No markdown, no backticks, no text before or after.
+  Structure:
   {
-    "daily_tip": "A short medical insight about lycopene or sulforaphane",
-    "morning": {"title": "Dish name", "cancer_inhibition": "How it helps", "systemic_benefit": "Heart/Liver help"},
-    "lunch": {"title": "Dish name", "cancer_inhibition": "How it helps", "systemic_benefit": "Heart/Liver help"},
-    "dinner": {"title": "Dish name", "cancer_inhibition": "How it helps", "systemic_benefit": "Heart/Liver help"}
-  }
-  Respond ONLY with the JSON code in Hebrew. No backticks, no markdown.`;
+    "daily_tip": "טיפ בריאותי קצר",
+    "meals": [
+      {"title": "ארוחת בוקר", "cancer_inhibition": "הסבר קצר", "systemic_benefit": "יתרון למערכות הגוף"},
+      {"title": "ארוחת צהריים", "cancer_inhibition": "הסבר קצר", "systemic_benefit": "יתרון למערכות הגוף"},
+      {"title": "ארוחת ערב", "cancer_inhibition": "הסבר קצר", "systemic_benefit": "יתרון למערכות הגוף"}
+    ]
+  }`;
 
   try {
     const response = await fetch(API_URL, {
@@ -27,19 +30,17 @@ module.exports = async (req, res) => {
     });
 
     const data = await response.json();
-    
-    if (data.error) throw new Error(data.error.message);
+    if (!data.candidates) throw new Error("No candidates from AI");
 
     let text = data.candidates[0].content.parts[0].text;
     
-    // ניקוי אגרסיבי של סימני Markdown למקרה שה-AI מתעקש להוסיף אותם
+    // מנקה סימני Markdown אם ה-AI בכל זאת הוסיף אותם
     const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
     
-    // שליחת הנתונים כ-JSON תקין
     res.status(200).json(JSON.parse(cleanJson));
 
   } catch (error) {
-    console.error("Server Error:", error.message);
-    res.status(500).json({ error: "נתונים לא תקינים מה-AI", details: error.message });
+    console.error("Error:", error.message);
+    res.status(500).json({ error: "Failed to load menu", details: error.message });
   }
 };
