@@ -8,31 +8,10 @@ module.exports = async (req, res) => {
   const API_KEY = process.env.GEMINI_API_KEY;
   const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-  const prompt = `אתה מומחה לתזונה פונקציונלית עבור חולי Gleason 3+4. 
-  צור תוכנית שבועית מלאה (7 ימים נפרדים). לכל יום צור 3 ארוחות שונות.
-  
-  דגשים:
-  - גיוון מקסימלי: אל תחזור על אותן ארוחות.
-  - שילובים כימיים: הסבר על פלפל שחור, ג'ינג'ר, שומן זית וספיגה.
-  - בריאות הלב ועיכוב סרטן.
-
-  החזר אך ורק JSON במבנה הבא:
-  {
-    "weekly_plan": [
-      {
-        "day_number": 1,
-        "daily_tip": "טיפ ליום זה",
-        "meals": [
-          {
-            "title": "שם הארוחה",
-            "ingredients_logic": "הסבר על שילוב החומרים",
-            "cancer_inhibition": "הסבר עיכוב סרטן",
-            "cardio_benefit": "הסבר לב וכלי דם"
-          }
-        ]
-      }
-    ]
-  } (סה"כ 7 אובייקטים בתוך weekly_plan)`;
+  const prompt = `אתה מומחה לתזונה עבור חולי Gleason 3+4. צור תוכנית שבועית ל-7 ימים.
+  בכל יום 3 ארוחות שונות. הסבר על שילובי חומרים (כמו פלפל שחור וג'ינג'ר), עיכוב סרטן ובריאות הלב.
+  החזר אך ורק JSON במבנה:
+  {"weekly_plan": [{"day_number": 1, "daily_tip": "...", "meals": [{"title": "...", "ingredients_logic": "...", "cancer_inhibition": "...", "cardio_benefit": "..."}]}]}`;
 
   try {
     const response = await fetch(API_URL, {
@@ -40,6 +19,10 @@ module.exports = async (req, res) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          maxOutputTokens: 4000, // מבטיח מספיק מקום לכל 7 הימים
+          temperature: 0.7
+        },
         safetySettings: [{ category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" }]
       })
     });
@@ -51,6 +34,6 @@ module.exports = async (req, res) => {
     res.status(200).json(JSON.parse(text.substring(jsonStart, jsonEnd)));
 
   } catch (error) {
-    res.status(500).json({ error: "Failed to generate weekly plan" });
+    res.status(500).json({ error: "טעינת 7 ימים נכשלה", details: error.message });
   }
 };
