@@ -8,12 +8,11 @@ module.exports = async (req, res) => {
   const API_KEY = process.env.GEMINI_API_KEY;
   const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-  const prompt = `אתה מומחה לתזונה פונקציונלית. צור תוכנית שבועית ל-7 ימים עבור Gleason 3+4.
-  לכל יום: טיפ יומי ו-3 ארוחות (בוקר, צהריים, ערב).
-  דגשים: שילובי ספיגה (פלפל שחור/ג'ינג'ר), עיכוב סרטן, ובריאות הלב.
-  החזר אך ורק JSON במבנה:
-  {"weekly_plan": [{"day": 1, "tip": "...", "meals": [{"t": "שם", "l": "לוגיקה", "ci": "סרטן", "cb": "לב"}]}]}`;
-
+  const prompt = `Create a 7-day meal plan for Gleason 3+4. 
+  For each day: a tip and 3 meals. 
+  Keep descriptions very brief (1 sentence each).
+  Respond ONLY with JSON:
+  {"weekly_plan": [{"day": 1, "tip": "..", "meals": [{"t": "..", "l": "..", "ci": "..", "cb": ".."}]}]}`;
 
   try {
     const response = await fetch(API_URL, {
@@ -25,7 +24,7 @@ module.exports = async (req, res) => {
       })
     });
 
-    
+
     const data = await response.json();
     let text = data.candidates[0].content.parts[0].text;
     const jsonStart = text.indexOf('{');
