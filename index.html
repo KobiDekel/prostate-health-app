@@ -29,58 +29,61 @@
     </div>
 
     <script>
-        let weeklyPlan = [];
+    let weeklyPlan = [];
 
-        async function init() {
-            try {
-                const res = await fetch('/api/server');
-                const data = await res.json();
-                weeklyPlan = data.weekly_plan;
-                
-                renderDaySelector();
-                showDay(1);
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('day-content').style.display = 'block';
-            } catch (e) {
-                alert("שגיאה בטעינת הנתונים");
-            }
-        }
-
-        function renderDaySelector() {
-            const selector = document.getElementById('day-selector');
-            for(let i=1; i<=7; i++) {
-                selector.innerHTML += `<button onclick="showDay(${i})" id="btn-day-${i}" class="bg-white/20 px-4 py-2 rounded-xl text-sm min-w-[60px]">יום ${i}</button>`;
-            }
-        }
-
-        function showDay(dayNum) {
-            const dayData = weeklyPlan.find(d => d.day_number === dayNum);
-            if(!dayData) return;
-
-            // עדכון כפתורים
-            document.querySelectorAll('#day-selector button').forEach(b => b.classList.replace('bg-white', 'bg-white/20'));
-            document.querySelectorAll('#day-selector button').forEach(b => b.classList.remove('text-indigo-900', 'font-bold'));
-            const activeBtn = document.getElementById(`btn-day-${dayNum}`);
-            activeBtn.classList.replace('bg-white/20', 'bg-white');
-            activeBtn.classList.add('text-indigo-900', 'font-bold');
-
-            document.getElementById('daily-tip-box').innerHTML = `<strong>💡 טיפ היום:</strong> ${dayData.daily_tip}`;
+    async function init() {
+        const loading = document.getElementById('loading');
+        try {
+            const res = await fetch('/api/server');
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            weeklyPlan = data.weekly_plan;
             
-            const container = document.getElementById('meals-container');
-            container.innerHTML = '';
-            dayData.meals.forEach(meal => {
-                container.innerHTML += `
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                        <h3 class="font-bold text-indigo-800 border-b pb-2 mb-3">${meal.title}</h3>
-                        <p class="text-xs mb-2"><strong>🧪 שילוב חומרים:</strong> ${meal.ingredients_logic}</p>
-                        <p class="text-xs mb-2 text-red-600"><strong>🛡️ עיכוב סרטן:</strong> ${meal.cancer_inhibition}</p>
-                        <p class="text-xs text-emerald-600"><strong>❤️ לב וכלי דם:</strong> ${meal.cardio_benefit}</p>
-                    </div>
-                `;
-            });
+            renderDaySelector();
+            showDay(1);
+            loading.style.display = 'none';
+            document.getElementById('day-content').style.display = 'block';
+        } catch (e) {
+            loading.innerHTML = '<p class="text-red-500">הטעינה לוקחת זמן... נסה לרענן את הדף</p>';
         }
+    }
 
-        init();
-    </script>
+    function renderDaySelector() {
+        const selector = document.getElementById('day-selector');
+        selector.innerHTML = '';
+        for(let i=1; i<=7; i++) {
+            selector.innerHTML += `<button onclick="showDay(${i})" id="btn-day-${i}" class="bg-white/20 text-white px-4 py-2 rounded-xl text-sm min-w-[60px] ml-2">יום ${i}</button>`;
+        }
+    }
+
+    function showDay(dayNum) {
+        const dayData = weeklyPlan.find(d => d.day === dayNum);
+        if(!dayData) return;
+
+        document.querySelectorAll('#day-selector button').forEach(b => {
+            b.classList.remove('bg-white', 'text-indigo-900', 'font-bold');
+            b.classList.add('bg-white/20', 'text-white');
+        });
+        const activeBtn = document.getElementById(`btn-day-${dayNum}`);
+        activeBtn.classList.replace('bg-white/20', 'bg-white');
+        activeBtn.classList.replace('text-white', 'text-indigo-900');
+        activeBtn.classList.add('font-bold');
+
+        document.getElementById('daily-tip-box').innerHTML = `<strong>💡 טיפ היום:</strong> ${dayData.tip}`;
+        
+        const container = document.getElementById('meals-container');
+        container.innerHTML = '';
+        dayData.meals.forEach(meal => {
+            container.innerHTML += `
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 mb-4">
+                    <h3 class="font-bold text-indigo-800 border-b pb-2 mb-3">${meal.t}</h3>
+                    <p class="text-[11px] mb-2"><strong>🧪 שילוב חומרים:</strong> ${meal.l}</p>
+                    <p class="text-[11px] mb-2 text-red-600"><strong>🛡️ עיכוב סרטן:</strong> ${meal.ci}</p>
+                    <p class="text-[11px] text-emerald-600"><strong>❤️ לב וכלי דם:</strong> ${meal.cb}</p>
+                </div>`;
+        });
+    }
+    init();
+</script>
 </body>
 </html>
