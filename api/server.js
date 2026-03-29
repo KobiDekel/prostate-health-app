@@ -10,15 +10,15 @@ module.exports = async (req, res) => {
   const API_KEY = process.env.GEMINI_API_KEY;
   const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-  const prompt = `צור אובייקט JSON בעברית עבור תפריט יומי בריאותי. 
-  אל תוסיף טקסט לפני או אחרי ה-JSON.
-  המבנה חייב להיות בדיוק כזה:
+  const prompt = `Return a JSON object for a health-conscious person (prostate health context). 
+  Respond ONLY with the JSON in Hebrew.
+  Structure:
   {
-    "daily_tip": "טיפ קצר",
+    "daily_tip": "Short health tip",
     "meals": [
-      {"title": "ארוחת בוקר", "cancer_inhibition": "הסבר", "systemic_benefit": "יתרון"},
-      {"title": "ארוחת צהריים", "cancer_inhibition": "הסבר", "systemic_benefit": "יתרון"},
-      {"title": "ארוחת ערב", "cancer_inhibition": "הסבר", "systemic_benefit": "יתרון"}
+      {"title": "Breakfast name", "cancer_inhibition": "Benefit", "systemic_benefit": "Organ benefit"},
+      {"title": "Lunch name", "cancer_inhibition": "Benefit", "systemic_benefit": "Organ benefit"},
+      {"title": "Dinner name", "cancer_inhibition": "Benefit", "systemic_benefit": "Organ benefit"}
     ]
   }`;
 
@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        // ביטול חסימות בטיחות כדי לאפשר דיון בנושאים רפואיים
+        // הגדרות בטיחות כדי למנוע חסימה של תוכן בריאותי
         safetySettings: [
           { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
           { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -41,9 +41,17 @@ module.exports = async (req, res) => {
     const data = await response.json();
     
     if (data.error) throw new Error(data.error.message);
+    
+    // בדיקה אם גוגל חסמה את התוכן (FinishReason: SAFETY)
     if (!data.candidates || !data.candidates[0].content) {
-      console.error("Full Data:", JSON.stringify(data));
-      throw new Error("גוגל חסמה את התשובה מטעמי בטיחות או שגיאת מודל.");
+       return res.status(200).json({
+         daily_tip: "שימו לב: ה-AI חסם את התוכן מטעמי בטיחות רפואית.",
+         meals: [
+           {title: "נא לנסות שוב", cancer_inhibition: "-", systemic_benefit: "-"},
+           {title: "נא לנסות שוב", cancer_inhibition: "-", systemic_benefit: "-"},
+           {title: "נא לנסות שוב", cancer_inhibition: "-", systemic_benefit: "-"}
+         ]
+       });
     }
 
     let text = data.candidates[0].content.parts[0].text;
