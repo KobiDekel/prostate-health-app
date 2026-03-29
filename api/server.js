@@ -1,5 +1,3 @@
-const fetch = require('node-fetch');
-
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -10,17 +8,8 @@ module.exports = async (req, res) => {
   const API_KEY = process.env.GEMINI_API_KEY;
   const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-  const prompt = `Return a JSON object for a health-conscious person (prostate health context). 
-  Respond ONLY with the JSON in Hebrew.
-  Structure:
-  {
-    "daily_tip": "Short health tip",
-    "meals": [
-      {"title": "Breakfast name", "cancer_inhibition": "Benefit", "systemic_benefit": "Organ benefit"},
-      {"title": "Lunch name", "cancer_inhibition": "Benefit", "systemic_benefit": "Organ benefit"},
-      {"title": "Dinner name", "cancer_inhibition": "Benefit", "systemic_benefit": "Organ benefit"}
-    ]
-  }`;
+  const prompt = `Return ONLY a pure JSON object in Hebrew. No markdown, no backticks, no text. 
+  Example: {"daily_tip": "...", "meals": [{"title": "...", "cancer_inhibition": "...", "systemic_benefit": "..."}]}`;
 
   try {
     const response = await fetch(API_URL, {
@@ -28,7 +17,6 @@ module.exports = async (req, res) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        // הגדרות בטיחות כדי למנוע חסימה של תוכן בריאותי
         safetySettings: [
           { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
           { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
@@ -39,23 +27,16 @@ module.exports = async (req, res) => {
     });
 
     const data = await response.json();
-    
-    if (data.error) throw new Error(data.error.message);
-    
-    // בדיקה אם גוגל חסמה את התוכן (FinishReason: SAFETY)
+
     if (!data.candidates || !data.candidates[0].content) {
-       return res.status(200).json({
-         daily_tip: "שימו לב: ה-AI חסם את התוכן מטעמי בטיחות רפואית.",
-         meals: [
-           {title: "נא לנסות שוב", cancer_inhibition: "-", systemic_benefit: "-"},
-           {title: "נא לנסות שוב", cancer_inhibition: "-", systemic_benefit: "-"},
-           {title: "נא לנסות שוב", cancer_inhibition: "-", systemic_benefit: "-"}
-         ]
-       });
+      throw new Error("גוגל לא החזירה תשובה - בדוק API Key או חסימת בטיחות");
     }
 
     let text = data.candidates[0].content.parts[0].text;
-    const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    // ניקוי יסודי של כל מה שאינו JSON
+    const jsonStart = text.indexOf('{');
+    const jsonEnd = text.lastIndexOf('}') + 1;
+    const cleanJson = text.substring(jsonStart, jsonEnd);
     
     res.status(200).json(JSON.parse(cleanJson));
 
