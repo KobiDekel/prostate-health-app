@@ -14,6 +14,7 @@ module.exports = async (req, res) => {
   החזר אך ורק JSON במבנה:
   {"weekly_plan": [{"day": 1, "tip": "...", "meals": [{"t": "שם", "l": "לוגיקה", "ci": "סרטן", "cb": "לב"}]}]}`;
 
+
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -24,6 +25,7 @@ module.exports = async (req, res) => {
       })
     });
 
+    
     const data = await response.json();
     let text = data.candidates[0].content.parts[0].text;
     const jsonStart = text.indexOf('{');
