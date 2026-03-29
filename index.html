@@ -52,8 +52,7 @@
             const spinner = document.getElementById('loading-spinner');
             
             try {
-                // קריאה לשרת ה-API שלך ב-Vercel
-                // הכתובת /api/server היא נתיב ברירת המחדל של Vercel עבור קבצי שרת
+                // קריאה לשרת ה-API שלך
                 const response = await fetch('/api/server?gleason=3+4');
                 const data = await response.json();
 
@@ -65,28 +64,33 @@
                     document.getElementById('smart-notification').classList.remove('hidden');
                 }
 
-                // עיבוד הארוחות מה-JSON שה-AI החזיר
-                const mealKeys = ['morning', 'lunch', 'dinner']; // מותאם לפורמט ה-JSON הצפוי מהשרת
+                // עיבוד הארוחות
                 const mealTitles = ['ארוחת בוקר', 'ארוחת צהריים', 'ארוחת ערב'];
-                
-                // במידה וה-AI החזיר מערך או אובייקט, נמפה אותו לממשק
-                const menuItems = data.meals || [data.morning, data.lunch, data.dinner];
+                const menuItems = data.meals || [];
 
                 menuItems.forEach((meal, index) => {
                     if(!meal) return;
                     list.innerHTML += `
-                        <div class="meal-card bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="meal-card bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-4">
                             <div class="flex items-center p-4 bg-slate-50/50 border-b">
                                 <input type="checkbox" onchange="updateProgress()" class="w-6 h-6 rounded-full border-2 border-blue-300 text-blue-600">
                                 <div class="mr-3">
-                                    <span class="text-[9px] font-bold text-blue-600 uppercase tracking-widest">${mealTitles[index]}</span>
+                                    <span class="text-[9px] font-bold text-blue-600 uppercase tracking-widest">${mealTitles[index] || 'ארוחה'}</span>
                                     <h3 class="font-bold text-slate-800 text-sm">${meal.title}</h3>
                                 </div>
                             </div>
                             <div class="p-4 space-y-3">
-                                <p class="text-[11px] text-slate-700 leading-relaxed italic"><strong class="text-red-500">🛡️ עיכוב סרטן:</strong> ${meal.cancer_inhibition}</p>
+                                <p class="text-[11px] text-slate-700 leading-relaxed italic">
+                                    <strong class="text-blue-600">🧪 הרכב חומרים:</strong> ${meal.ingredients_logic || 'מידע לא זמין'}
+                                </p>
                                 <hr class="opacity-30">
-                                <p class="text-[11px] text-slate-700 leading-relaxed"><strong class="text-blue-500">❤️ מערכות הגוף:</strong> ${meal.systemic_benefit}</p>
+                                <p class="text-[11px] text-slate-700 leading-relaxed">
+                                    <strong class="text-red-500">🛡️ עיכוב סרטן:</strong> ${meal.cancer_inhibition || 'מידע לא זמין'}
+                                </p>
+                                <hr class="opacity-30">
+                                <p class="text-[11px] text-slate-700 leading-relaxed">
+                                    <strong class="text-emerald-600">❤️ לב וכלי דם:</strong> ${meal.cardio_benefit || 'מידע לא זמין'}
+                                </p>
                             </div>
                         </div>
                     `;
@@ -94,19 +98,20 @@
 
             } catch (error) {
                 console.error("Fetch error:", error);
-                spinner.innerHTML = `<p class="text-red-500 text-xs font-bold">שגיאה בחיבור לשרת ה-AI. וודא שהגדרת API KEY.</p>`;
+                spinner.innerHTML = `<p class="text-red-500 text-xs font-bold">שגיאה בטעינת התפריט. נסה לרענן.</p>`;
             }
         }
 
         function updateProgress() {
-            const total = document.querySelectorAll('input[type="checkbox"]').length;
-            const checked = Array.from(document.querySelectorAll('input[type="checkbox"]')).filter(c => c.checked).length;
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            const total = checkboxes.length;
+            const checked = Array.from(checkboxes).filter(c => c.checked).length;
             const percentage = (checked / total) * 100;
             document.getElementById('progress-bar').style.width = percentage + '%';
             
-            if(checked === total) {
+            if(checked === total && total > 0) {
                 document.getElementById('success-summary').classList.remove('hidden');
-                document.getElementById('summary-text').innerText = "היום הגנת על הלב, הכבד והמוח. זרימת הדם במצב אופטימלי לעיכוב המחלה.";
+                document.getElementById('summary-text').innerText = "היום הגנת על הלב, הכבד והערמונית באופן אופטימלי!";
                 setTimeout(() => document.getElementById('success-summary').classList.add('hidden'), 5000);
             }
         }
