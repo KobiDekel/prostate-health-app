@@ -16,7 +16,7 @@ module.exports = async (req, res) => {
 
         // הכתובת המדויקת שעובדת ב-100% עם המפתח שלך:
         // בתוך api/server.js - שנה את שורת ה-API_URL לזו:
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${API_KEY}`;
 
         const response = await fetch(API_URL, {
             method: 'POST',
