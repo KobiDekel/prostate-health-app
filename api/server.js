@@ -15,7 +15,8 @@ module.exports = async (req, res) => {
         const prompt = `Based on: "${rawData}", create a 7-day Gleason 3+4 plan. Return ONLY JSON.`;
 
         // הכתובת המדויקת שעובדת ב-100% עם המפתח שלך:
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // בתוך api/server.js - שנה את שורת ה-API_URL לזו:
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
 
         const response = await fetch(API_URL, {
             method: 'POST',
