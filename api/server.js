@@ -12,28 +12,24 @@ module.exports = async (req, res) => {
         const sourcePath = path.join(process.cwd(), 'sources.txt');
         const rawData = fs.readFileSync(sourcePath, 'utf8').substring(0, 2000);
 
-        // הנחיה ברורה ל-AI
-        const prompt = {
-            contents: [{ parts: [{ text: `Based on: "${rawData}", generate a 7-day meal plan for Gleason 3+4. Return ONLY JSON.` }] }]
-        };
-
-        // הכתובת המדויקת לגרסת 1.5 Flash - המודל הכי נפוץ כיום
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // זו הכתובת הסטנדרטית והיציבה ביותר
+        const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(prompt)
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: `Based on: "${rawData}", create a 7-day meal plan for Gleason 3+4. Return ONLY JSON.` }] }]
+            })
         });
 
         const data = await response.json();
 
-        // אם יש שגיאה, נחזיר אותה בצורה גלויה כדי שנדע מה לתקן
         if (data.error) {
-            return res.status(data.error.code || 500).json({ 
+            return res.status(500).json({ 
                 error: "Google API Error", 
                 message: data.error.message,
-                hint: "Check if Gemini API is enabled in your Google Cloud Console"
+                status: data.error.status 
             });
         }
 
