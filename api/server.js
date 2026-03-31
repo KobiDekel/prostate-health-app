@@ -13,10 +13,10 @@ module.exports = async (req, res) => {
         // אתחול ה-AI עם הגדרות ספציפיות ליציבות
         const genAI = new GoogleGenerativeAI(API_KEY);
         
-        // שימוש במודל ללא תוספות, הגרסה הכי נפוצה
+        // הוספנו את הפרמטר apiVersion: 'v1' כדי לעקוף את השגיאה
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-flash",
-        });
+            model: "gemini-1.5-flash" 
+        }, { apiVersion: 'v1' });
 
         const sourcePath = path.join(process.cwd(), 'sources.txt');
         const rawData = fs.readFileSync(sourcePath, 'utf8').substring(0, 2000);
