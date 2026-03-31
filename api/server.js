@@ -14,13 +14,7 @@ module.exports = async (req, res) => {
     const rawData = fs.readFileSync(sourcePath, 'utf8');
 
     // 2. שליחת המאגר ל-AI לעיבוד בזמן אמת
-    const prompt = `להלן מאגר מידע רפואי ותזונתי:
-    "${rawData}"
-    
-    בהתבסס על המאגר בלבד, צור תפריט שבועי ל-7 ימים עבור חולה גליסון 3+4. 
-    עבור כל יום צור טיפ ו-3 ארוחות. הדגש שילובים כימיים (כמו פלפל שחור/ג'ינג'ר) ובריאות הלב.
-    החזר אך ורק JSON במבנה הבא (גרסה 1.1.0):
-    {"version": "1.1.0", "last_updated": "2026-03-29", "weekly_plan": [{"day": 1, "tip": "..", "meals": [{"t": "..", "l": "..", "ci": "..", "cb": ".."}]}]}`;
+    const prompt = `"Base your response strictly on the provided data: ${rawData}. Generate a 7-day meal plan for Gleason 3+4 prostate cancer focusing on DNA repair and heart health. Return ONLY a valid JSON object following this structure: {"version":"1.1.0","weekly_plan":[{"day":1,"tip":"...","meals":[{"t":"...","l":"...","ci":"...","cb":"..."}]}]}`;
 
     const response = await fetch(API_URL, {
       method: 'POST',
