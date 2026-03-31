@@ -12,12 +12,12 @@ module.exports = async (req, res) => {
 
     try {
         const sourcePath = path.join(process.cwd(), 'sources.txt');
-        const rawData = fs.readFileSync(sourcePath, 'utf8').substring(0, 2500);
+        const rawData = fs.readFileSync(sourcePath, 'utf8').substring(0, 2000);
 
-        const prompt = `Based on: "${rawData}", create a 7-day Gleason 3+4 plan. Return ONLY JSON.`;
+        const prompt = `Based on: "${rawData}", create a 7-day Gleason 3+4 plan. Return ONLY a valid JSON object.`;
 
-        // כתובת מתוקנת לפי דרישות גוגל החדשות
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // הכתובת המעודכנת לגרסה 1 היציבה
+        const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
         const response = await fetch(API_URL, {
             method: 'POST',
@@ -29,10 +29,12 @@ module.exports = async (req, res) => {
 
         const data = await response.json();
 
+        // בדיקה אם גוגל החזירה שגיאה
         if (data.error) {
             return res.status(500).json({ error: "Google API Error", details: data.error.message });
         }
 
+        // חילוץ הטקסט וניקוי JSON
         const aiText = data.candidates[0].content.parts[0].text;
         const cleanJsonText = aiText.replace(/```json|```/g, "").trim();
         const finalData = JSON.parse(cleanJsonText);
