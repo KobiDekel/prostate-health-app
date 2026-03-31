@@ -6,6 +6,13 @@ module.exports = async (req, res) => {
   res.setHeader('Content-Type', 'application/json');
 
   const API_KEY = process.env.GEMINI_API_KEY;
+  // בדיקה פנימית: אם המפתח חסר, נחזיר הודעה מפורטת
+  if (!API_KEY) {
+      return res.status(500).json({ 
+          error: "Missing API Key", 
+          details: "Vercel environment variable GEMINI_API_KEY is not set." 
+      });
+  }
   const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
   try {
