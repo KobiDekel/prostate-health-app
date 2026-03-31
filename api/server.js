@@ -10,25 +10,29 @@ module.exports = async (req, res) => {
     if (!API_KEY) return res.status(500).json({ error: "Missing API Key" });
 
     try {
-        // אתחול ה-AI בצורה הרשמית
         const genAI = new GoogleGenerativeAI(API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        
+        // מנסים את המודל הכי יציב שיש למפתחים
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
-        // קריאת המאגר
         const sourcePath = path.join(process.cwd(), 'sources.txt');
-        const rawData = fs.readFileSync(sourcePath, 'utf8').substring(0, 2500);
+        const rawData = fs.readFileSync(sourcePath, 'utf8').substring(0, 2000);
 
-        const prompt = `Based on: "${rawData}", generate a 7-day meal plan for Gleason 3+4. Return ONLY a valid JSON object.`;
+        const prompt = `Generate a 7-day meal plan based on: ${rawData}. Return ONLY JSON.`;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
 
-        // ניקוי סימני Markdown מהתשובה
         const cleanJson = text.replace(/```json|```/g, "").trim();
         res.status(200).json(JSON.parse(cleanJson));
 
     } catch (error) {
-        res.status(500).json({ error: "Google AI Error", message: error.message });
+        // אם gemini-pro נכשל, נחזיר שגיאה מפורטת שתעזור לנו להבין אם המפתח עצמו חסום
+        res.status(500).json({ 
+            error: "Google AI Connection Failed", 
+            message: error.message,
+            tip: "Please check if 'Generative Language API' is enabled in your Google Cloud Console."
+        });
     }
 };
