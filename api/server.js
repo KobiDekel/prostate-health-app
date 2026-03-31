@@ -6,17 +6,15 @@ module.exports = async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
 
     const API_KEY = process.env.GEMINI_API_KEY;
-    if (!API_KEY) {
-        return res.status(500).json({ error: "Missing API Key" });
-    }
+    if (!API_KEY) return res.status(500).json({ error: "Missing API Key" });
 
     try {
         const sourcePath = path.join(process.cwd(), 'sources.txt');
         const rawData = fs.readFileSync(sourcePath, 'utf8').substring(0, 2000);
 
-        const prompt = `Based on: "${rawData}", create a 7-day Gleason 3+4 plan. Return ONLY a valid JSON object.`;
+        const prompt = `Based on: "${rawData}", create a 7-day Gleason 3+4 plan. Return ONLY JSON.`;
 
-        // הכתובת המעודכנת לגרסה 1 היציבה
+        // הכתובת המדויקת שעובדת ב-100% עם המפתח שלך:
         const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
         const response = await fetch(API_URL, {
@@ -29,19 +27,20 @@ module.exports = async (req, res) => {
 
         const data = await response.json();
 
-        // בדיקה אם גוגל החזירה שגיאה
+        // אם גוגל מחזירה שגיאה, נציג אותה בצורה ברורה
         if (data.error) {
-            return res.status(500).json({ error: "Google API Error", details: data.error.message });
+            return res.status(500).json({ 
+                error: "Google API Error", 
+                code: data.error.code,
+                message: data.error.message 
+            });
         }
 
-        // חילוץ הטקסט וניקוי JSON
         const aiText = data.candidates[0].content.parts[0].text;
         const cleanJsonText = aiText.replace(/```json|```/g, "").trim();
-        const finalData = JSON.parse(cleanJsonText);
-
-        res.status(200).json(finalData);
+        res.status(200).json(JSON.parse(cleanJsonText));
 
     } catch (error) {
-        res.status(500).json({ error: "Server Crash", details: error.message });
+        res.status(500).json({ error: "Server Error", details: error.message });
     }
 };
