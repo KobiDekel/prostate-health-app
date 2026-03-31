@@ -43,6 +43,11 @@
             const loading = document.getElementById('loading');
             const content = document.getElementById('day-content');
             
+            const data = await res.json();
+            if(data.version) {
+                document.getElementById('app-version').innerText = `v${data.version}`;
+            }
+            
             try {
                 // קריאה לקובץ data.json דרך השרת
                 const res = await fetch('/api/server');
