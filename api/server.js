@@ -31,3 +31,4 @@ module.exports = async (req, res) => {
         res.status(500).json({ error: "AI Processing Error", message: error.message });
     }
 };
+
