@@ -1,5 +1,7 @@
 module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'application/json');
+
     const API_KEY = process.env.GEMINI_API_KEY;
 
     try {
@@ -12,13 +14,17 @@ module.exports = async (req, res) => {
         });
 
         const data = await response.json();
-        // אם גוגל מחזירה שגיאה, אנחנו נראה אותה כאן בבירור
+
+        // אם יש שגיאה מגוגל, אנחנו נראה אותה עכשיו בבירור באתר
         if (data.error) {
-            return res.status(500).json({ error: "Google Error", details: data.error.message });
+            return res.status(200).json({ 
+                error_from_google: data.error.message,
+                reason: data.error.status 
+            });
         }
 
         res.status(200).json(data);
     } catch (err) {
-        res.status(500).json({ error: "Fetch Failed", message: err.message });
+        res.status(500).json({ error: "Network Error", message: err.message });
     }
 };
