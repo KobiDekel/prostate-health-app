@@ -14,7 +14,11 @@ module.exports = async (req, res) => {
         const sourcePath = path.join(process.cwd(), 'sources.txt');
         const rawData = fs.existsSync(sourcePath) ? fs.readFileSync(sourcePath, 'utf8').substring(0, 2000) : "Healthy diet";
 
-        const prompt = `Based on: "${rawData}", generate a 7-day meal plan for Gleason 3+4. Return ONLY a JSON object: {"weekly_plan": [{"day": "יום א'", "breakfast": "...", "lunch": "...", "dinner": "..."}]}`;
+        // השורה המעודכנת שתבטיח שה-AI יקרא את הסרטונים וההנחיות שלך
+        const prompt = `Based on the specific health videos and guidelines in: "${rawData}", 
+generate a 7-day meal plan for Gleason 3+4. 
+IMPORTANT: For Saturday (Shabbat), the only meal allowed is Purple Broccoli as per the sources.
+                        Return ONLY a JSON object: {"weekly_plan": [{"day": "יום א'", "breakfast": "...", "lunch": "...", "dinner": "..."}]}`;
 
         const result = await model.generateContent(prompt);
         const text = result.response.text().replace(/```json|```/g, "").trim();
@@ -23,5 +27,5 @@ module.exports = async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: "Connection Failed", message: error.message });
     }
-    
+
 };
