@@ -3,42 +3,32 @@ const fs = require('fs');
 const path = require('path');
 
 module.exports = async (req, res) => {
-    // הגדרת כותרות כדי למנוע בעיות דפדפן
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', 'application/json');
 
     try {
         const apiKey = process.env.GEMINI_API_KEY;
-        if (!apiKey) throw new Error("מפתח ה-API חסר בהגדרות Vercel");
+        if (!apiKey) throw new Error("API Key is missing in Vercel settings");
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1' });
+        // שימוש במודל latest שעוקף בעיות גרסה
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
-        // קריאה בטוחה של הקובץ
         const sourcePath = path.join(process.cwd(), 'sources.txt');
-        let rawData = "Healthy diet guidelines";
-        if (fs.existsSync(sourcePath)) {
-            rawData = fs.readFileSync(sourcePath, 'utf8').substring(0, 1500);
-        }
+        const rawData = fs.existsSync(sourcePath) ? fs.readFileSync(sourcePath, 'utf8').substring(0, 1800) : "Healthy diet";
 
-        const prompt = `Based on: "${rawData}", generate a 7-day meal plan for Gleason 3+4. 
-        Note: On Saturday, eat only purple broccoli.
-        Return ONLY a JSON object: {"weekly_plan": [{"day": "יום א'", "breakfast": "...", "lunch": "...", "dinner": "..."}]}`;
+        // הנחיה מפורטת שכוללת את המקורות שלך
+        const prompt = `Based on these sources: "${rawData}", create a 7-day meal plan for Gleason 3+4. 
+        Special rule: On Saturday (Shabbat), eat ONLY purple broccoli.
+        Return ONLY this JSON structure: {"weekly_plan": [{"day": "יום א'", "breakfast": "...", "lunch": "...", "dinner": "..."}]}`;
 
         const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const text = result.response.text().replace(/```json|```/g, "").trim();
 
-        // ניקוי טקסט מיותר שה-AI עלול להוסיף
-        const cleanJson = text.replace(/```json|```/g, "").trim();
-        
-        res.status(200).json(JSON.parse(cleanJson));
-
+        res.status(200).json(JSON.parse(text));
     } catch (error) {
-        console.error("קריסה בשרת:", error.message);
-        res.status(500).json({ 
-            error: "Connection Failed", 
-            message: error.message 
-        });
+        // לוג מפורט שיעזור לנו להבין אם המפתח לא תקין
+        console.error("Critical Error:", error.message);
+        res.status(500).json({ error: "AI Engine Error", detail: error.message });
     }
 };
