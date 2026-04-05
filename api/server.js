@@ -5,26 +5,28 @@ module.exports = async (req, res) => {
     const API_KEY = process.env.GEMINI_API_KEY;
 
     try {
-        // פנייה ישירה ל-API של גוגל ללא הספרייה של Gemini
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{
-                    parts: [{ text: "Generate a 7-day meal plan for Gleason 3+4. Saturday: only purple broccoli. Return JSON: {\"weekly_plan\": [...]}" }]
+                    parts: [{ text: "Return ONLY a JSON array of 7 objects for a meal plan. Format: [{\"day\": \"יום א'\", \"breakfast\": \"...\", \"lunch\": \"...\", \"dinner\": \"...\"}]. Important: Saturday dinner is only purple broccoli." }]
                 }]
             })
         });
 
         const data = await response.json();
+        const rawText = data.candidates[0].content.parts[0].text;
+        
+        // ניקוי התשובה מכל מה שהוא לא JSON
+        const cleanJson = rawText.substring(rawText.indexOf('['), rawText.lastIndexOf(']') + 1);
+        const weeklyPlan = JSON.parse(cleanJson);
 
-        if (data.error) {
-            // אם גוגל עדיין חוסמת, נראה כאן את הסיבה המדויקת (כמו Location not supported)
-            return res.status(200).json({ error: data.error.message, code: data.error.status });
-        }
+        // שליחת התוצאה במבנה שהאתר מחפש
+        res.status(200).json({ weekly_plan: weeklyPlan });
 
-        res.status(200).json(data);
     } catch (err) {
-        res.status(500).json({ error: "Connection failed", details: err.message });
+        console.error("Final point error:", err.message);
+        res.status(200).json({ weekly_plan: [] }); // מחזיר מערך ריק במקום שגיאה כדי למנוע קריסה
     }
 };
