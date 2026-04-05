@@ -10,23 +10,36 @@ module.exports = async (req, res) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{
-                    parts: [{ text: "Return ONLY a JSON array of 7 objects for a meal plan. Format: [{\"day\": \"יום א'\", \"breakfast\": \"...\", \"lunch\": \"...\", \"dinner\": \"...\"}]. Important: Saturday dinner is only purple broccoli." }]
+                    parts: [{ text: "Return ONLY a JSON array for a 7-day meal plan. Format: [{\"day\": \"יום א'\", \"breakfast\": \"...\", \"lunch\": \"...\", \"dinner\": \"...\"}]. Make sure Saturday dinner is only purple broccoli." }]
                 }]
             })
         });
 
         const data = await response.json();
+        
+        // בדיקה אם גוגל החזירה שגיאה במבנה הנתונים
+        if (!data.candidates || !data.candidates[0]) {
+            console.error("Google structure error:", JSON.stringify(data));
+            return res.status(200).json({ weekly_plan: [] });
+        }
+
         const rawText = data.candidates[0].content.parts[0].text;
         
-        // ניקוי התשובה מכל מה שהוא לא JSON
-        const cleanJson = rawText.substring(rawText.indexOf('['), rawText.lastIndexOf(']') + 1);
+        // חילוץ ה-JSON בצורה בטוחה יותר
+        const startBracket = rawText.indexOf('[');
+        const endBracket = rawText.lastIndexOf(']') + 1;
+        
+        if (startBracket === -1 || endBracket === 0) {
+            throw new Error("No JSON array found in response");
+        }
+
+        const cleanJson = rawText.substring(startBracket, endBracket);
         const weeklyPlan = JSON.parse(cleanJson);
 
-        // שליחת התוצאה במבנה שהאתר מחפש
         res.status(200).json({ weekly_plan: weeklyPlan });
 
     } catch (err) {
-        console.error("Final point error:", err.message);
-        res.status(200).json({ weekly_plan: [] }); // מחזיר מערך ריק במקום שגיאה כדי למנוע קריסה
+        console.error("Final Fix Error:", err.message);
+        res.status(200).json({ weekly_plan: [], error: err.message });
     }
 };
