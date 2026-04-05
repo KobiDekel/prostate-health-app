@@ -5,13 +5,15 @@ module.exports = async (req, res) => {
     const API_KEY = process.env.GEMINI_API_KEY;
 
     try {
-        // שימוש בגרסה היציבה ביותר של ה-URL
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${API_KEY}`, {
+        // הכתובת המדויקת שגוגל דורשת כרגע
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        
+        const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{
-                    parts: [{ text: "Return a 7-day meal plan for Gleason 3+4 in JSON format. Sunday dinner: purple broccoli. Output format: [{\"day\": \"יום א'\", \"breakfast\": \"...\", \"lunch\": \"...\", \"dinner\": \"...\"}]" }]
+                    parts: [{ text: "Return a 7-day meal plan for Gleason 3+4 as a JSON array. Saturday dinner must be only purple broccoli. Format: [{\"day\": \"יום א'\", \"breakfast\": \"...\", \"lunch\": \"...\", \"dinner\": \"...\"}]" }]
                 }]
             })
         });
@@ -24,15 +26,20 @@ module.exports = async (req, res) => {
             return res.status(200).json({ weekly_plan: [], error: data.error.message });
         }
 
-        const rawText = data.candidates[0].content.parts[0].text;
-        const startBracket = rawText.indexOf('[');
-        const endBracket = rawText.lastIndexOf(']') + 1;
-        const cleanJson = rawText.substring(startBracket, endBracket);
+        // חילוץ הטקסט מהמבנה החדש של גוגל
+        let rawText = data.candidates[0].content.parts[0].text;
         
-        res.status(200).json({ weekly_plan: JSON.parse(cleanJson) });
+        // ניקוי סימני Markdown (כמו ```json) שגוגל אוהבת להוסיף
+        const cleanJson = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+        
+        const startBracket = cleanJson.indexOf('[');
+        const endBracket = cleanJson.lastIndexOf(']') + 1;
+        const finalData = JSON.parse(cleanJson.substring(startBracket, endBracket));
+
+        res.status(200).json({ weekly_plan: finalData });
 
     } catch (err) {
-        console.error("Final System Error:", err.message);
+        console.error("Critical System Error:", err.message);
         res.status(200).json({ weekly_plan: [] });
     }
 };
