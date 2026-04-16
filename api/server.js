@@ -1,8 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-// שים לב: אם לא הצלחת להתקין mammoth, הקוד הזה כולל הגנה שלא תקריס את השרת
-let mammoth;
-try { mammoth = require('mammoth'); } catch (e) { mammoth = null; }
 
 module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -11,33 +8,32 @@ module.exports = async (req, res) => {
     const API_KEY = process.env.GEMINI_API_KEY;
 
     try {
-        let fileContent = "Instructions: Create a 7-day meal plan for Gleason 3+4.";
-        
-        // ניסיון לקרוא את הקובץ רק אם הספרייה מותקנת והקובץ קיים
+        // 1. קריאת תוכן הקובץ sources.txt (קריאה ישירה ופשוטה)
         const filePath = path.join(process.cwd(), 'sources.txt');
-        if (mammoth && fs.existsSync(filePath)) {
-            const fileBuffer = fs.readFileSync(filePath);
-            const result = await mammoth.extractRawText({ buffer: fileBuffer });
-            fileContent = result.value;
+        
+        if (!fs.existsSync(filePath)) {
+            throw new Error("הקובץ sources.txt לא נמצא בתיקיית השורש של הפרויקט");
         }
 
-        // שימוש במודל gemini-1.5-flash ללא תוספות - זה הנתיב הכי אמין ב-v1beta
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+
+        // 2. בניית ה-Prompt עם התוכן מהקובץ
+        const promptText = `
+            Analyze the nutritional information in this text: ${fileContent}
+            Based on these sources, create a 7-day meal plan for Gleason 3+4.
+            Strict requirement: Saturday dinner must be ONLY "Purple Broccoli" (ברוקולי סגול).
+            Return ONLY a JSON array in this format:
+            [{"day": "יום א'", "breakfast": "...", "lunch": "...", "dinner": "..."}]
+        `;
+
+        // 3. פנייה ל-API (השתמשתי בנתיב היציב ביותר)
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
         
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: `
-                        תיאור המשימה (Prompt):
-                        1. נתח את ההנחיות התזונתיות הבאות: ${fileContent}
-                        2. בנה תפריט שבועי (7 ימים) למטופל עם Gleason 3+4.
-                        3. דגש קריטי: ארוחת ערב ביום שבת חייבת להיות "ברוקולי סגול" בלבד.
-                        4. החזר אך ורק מערך JSON בפורמט הבא:
-                        [{"day": "יום א'", "breakfast": "...", "lunch": "...", "dinner": "..."}]
-                    ` }]
-                }]
+                contents: [{ parts: [{ text: promptText }] }]
             })
         });
 
@@ -47,16 +43,17 @@ module.exports = async (req, res) => {
             throw new Error(data.error.message);
         }
 
+        // 4. חילוץ ה-JSON
         let rawText = data.candidates[0].content.parts[0].text;
         const cleanJson = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
         const startBracket = cleanJson.indexOf('[');
         const endBracket = cleanJson.lastIndexOf(']') + 1;
         
-        res.status(200).json({ weekly_plan: JSON.parse(cleanJson.substring(startBracket, endBracket)) });
+        const finalData = JSON.parse(cleanJson.substring(startBracket, endBracket));
+        res.status(200).json({ weekly_plan: finalData });
 
     } catch (err) {
-        console.error("Final Error:", err.message);
-        // החזרת מבנה ריק כדי שהאתר לא יציג שגיאת התחברות אלא טבלה ריקה לכל הפחות
+        console.error("Error:", err.message);
         res.status(200).json({ weekly_plan: [], error: err.message });
     }
 };
