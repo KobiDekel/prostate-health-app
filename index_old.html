@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>תפריט תזונה מותאם אישית</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 20px; text-align: center; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; }
+        #version-tag { color: #7f8c8d; font-size: 0.9em; margin-bottom: 20px; }
+        .status-loading { color: #3498db; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        th { background-color: #27ae60; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>תפריט תזונה מבוסס AI</h1>
+    <p id="version-tag">גרסה: 2.0 - טוען נתונים מהשרת...</p>
+
+    <div id="meal-plan-container">
+        <p class="status-loading">ה-AI בונה עבורך תפריט על סמך המאגר... זה לוקח כ-15 שניות.</p>
+        <table id="meal-table" style="display:none;">
+            <thead>
+                <tr>
+                    <th>יום</th>
+                    <th>בוקר</th>
+                    <th>צהריים</th>
+                    <th>ערב</th>
+                </tr>
+            </thead>
+            <tbody id="meal-body">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    async function loadDynamicMenu() {
+        const versionTag = document.getElementById('version-tag');
+        const loader = document.querySelector('.status-loading');
+        const table = document.getElementById('meal-table');
+        const tableBody = document.getElementById('meal-body');
+
+        try {
+            // קריאה לשרת ה-API שלך ב-Vercel
+            const response = await fetch('/api/server');
+            
+            if (!response.ok) throw new Error("Server response failed");
+            
+            const data = await response.json();
+
+            // ניקוי הטבלה והודעת הטעינה
+            tableBody.innerHTML = '';
+            loader.style.display = 'none';
+            table.style.display = 'table';
+
+            // מילוי הטבלה בנתונים מה-AI
+            // הערה: מבנה ה-JSON צריך להתאים למה שה-AI מחזיר
+            const days = data.weekly_plan || data.days || data;
+
+            days.forEach(day => {
+                const row = `<tr>
+                    <td><strong>${day.day || day.יום}</strong></td>
+                    <td>${day.breakfast || day.בוקר}</td>
+                    <td>${day.lunch || day.צהריים}</td>
+                    <td>${day.dinner || day.ערב}</td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+
+            versionTag.innerText = "גרסה: 2.0 - מחובר ל-AI (מעודכן)";
+
+        } catch (error) {
+            console.error("שגיאה:", error);
+            loader.innerText = "שגיאה בטעינת התפריט. וודא שה-API תקין.";
+            versionTag.innerText = "גרסה: 2.0 - שגיאת חיבור";
+        }
+    }
+
+    // הפעלת הפונקציה מיד כשהדף עולה
+    window.onload = loadDynamicMenu;
+</script>
+
+</body>
+</html>

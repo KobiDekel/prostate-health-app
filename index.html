@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>תפריט תזונה מותאם אישית</title>
+    <title>תפריט תזונה מותאם אישית - Direct AI</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 20px; text-align: center; }
         .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
@@ -20,10 +20,10 @@
 
 <div class="container">
     <h1>תפריט תזונה מבוסס AI</h1>
-    <p id="version-tag">גרסה: 2.0 - טוען נתונים מהשרת...</p>
+    <p id="version-tag">גרסה: 3.0 - מנוע AI ישיר</p>
 
     <div id="meal-plan-container">
-        <p class="status-loading">ה-AI בונה עבורך תפריט על סמך המאגר... זה לוקח כ-15 שניות.</p>
+        <p id="status-text" class="status-loading">הדפדפן מתחבר כעת ישירות לגוגל... זה לוקח כ-10 שניות.</p>
         <table id="meal-table" style="display:none;">
             <thead>
                 <tr>
@@ -33,57 +33,82 @@
                     <th>ערב</th>
                 </tr>
             </thead>
-            <tbody id="meal-body">
-                </tbody>
+            <tbody id="meal-body"></tbody>
         </table>
     </div>
 </div>
 
 <script>
-    async function loadDynamicMenu() {
-        const versionTag = document.getElementById('version-tag');
-        const loader = document.querySelector('.status-loading');
+    // המידע שהעלית מתוך sources.txt מוטמע כאן ישירות כבסיס ידע ל-AI
+    const rawSources = `
+        במקורות שסופקו מופיעים שמות של סרטונים רבים מיוטיוב וכן סרטון מתוך כתבה באתר "וואלה".
+        הערה מיוחדת מהמקורות: לאכול רק ברוקולי סגול בשבת.
+        סרטונים מרכזיים: Regrow Stem Cells, Cholesterol reduction (Dr. Ziv Ab), Cancer metabolic tricks, 
+        Anti-cancer foods, Stem cells activation, Nitric Oxide boost, Mitochondrial health.
+    `;
+
+    async function generateMealPlan() {
+        const statusText = document.getElementById('status-text');
         const table = document.getElementById('meal-table');
         const tableBody = document.getElementById('meal-body');
+        
+        // --- הזן כאן את המפתח שלך ---
+        const API_KEY = "AIzaSyBMGJysQXclL8M4UemlzlNMffejjq0cQ8k"; 
+        
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+
+        const prompt = {
+            contents: [{
+                parts: [{
+                    text: `Based on these nutritional sources: ${rawSources}, create a 7-day meal plan for Gleason 3+4. 
+                    Requirement: Saturday dinner must be ONLY "Purple Broccoli". 
+                    Return ONLY a JSON array of objects with keys: "day", "breakfast", "lunch", "dinner".`
+                }]
+            }]
+        };
 
         try {
-            // קריאה לשרת ה-API שלך ב-Vercel
-            const response = await fetch('/api/server');
-            
-            if (!response.ok) throw new Error("Server response failed");
-            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(prompt)
+            });
+
+            if (!response.ok) throw new Error("API Connection Failed");
+
             const data = await response.json();
+            const rawResponseText = data.candidates[0].content.parts[0].text;
+            
+            // חילוץ JSON נקי
+            const jsonStart = rawResponseText.indexOf('[');
+            const jsonEnd = rawResponseText.lastIndexOf(']') + 1;
+            const mealPlan = JSON.parse(rawResponseText.substring(jsonStart, jsonEnd));
 
-            // ניקוי הטבלה והודעת הטעינה
+            // הצגת הנתונים בטבלה
             tableBody.innerHTML = '';
-            loader.style.display = 'none';
-            table.style.display = 'table';
-
-            // מילוי הטבלה בנתונים מה-AI
-            // הערה: מבנה ה-JSON צריך להתאים למה שה-AI מחזיר
-            const days = data.weekly_plan || data.days || data;
-
-            days.forEach(day => {
+            mealPlan.forEach(day => {
                 const row = `<tr>
-                    <td><strong>${day.day || day.יום}</strong></td>
-                    <td>${day.breakfast || day.בוקר}</td>
-                    <td>${day.lunch || day.צהריים}</td>
-                    <td>${day.dinner || day.ערב}</td>
+                    <td><strong>${day.day}</strong></td>
+                    <td>${day.breakfast}</td>
+                    <td>${day.lunch}</td>
+                    <td>${day.dinner}</td>
                 </tr>`;
                 tableBody.innerHTML += row;
             });
 
-            versionTag.innerText = "גרסה: 2.0 - מחובר ל-AI (מעודכן)";
+            statusText.style.display = 'none';
+            table.style.display = 'table';
+            document.getElementById('version-tag').innerText = "גרסה: 3.0 - תפריט עודכן בהצלחה";
 
         } catch (error) {
-            console.error("שגיאה:", error);
-            loader.innerText = "שגיאה בטעינת התפריט. וודא שה-API תקין.";
-            versionTag.innerText = "גרסה: 2.0 - שגיאת חיבור";
+            console.error("Error:", error);
+            statusText.innerText = "שגיאה: " + error.message + ". וודא שה-API Key תקין.";
+            statusText.style.color = "red";
         }
     }
 
-    // הפעלת הפונקציה מיד כשהדף עולה
-    window.onload = loadDynamicMenu;
+    // הפעלה אוטומטית
+    window.onload = generateMealPlan;
 </script>
 
 </body>
