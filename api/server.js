@@ -8,13 +8,16 @@ module.exports = async (req, res) => {
     const API_KEY = process.env.GEMINI_API_KEY;
 
     try {
+        // 1. קריאת קובץ המקורות (וודא שזה sources.txt ולא docx)
         const filePath = path.join(process.cwd(), 'sources.txt');
-        let fileContent = "Instructions: Create a 7-day meal plan for Gleason 3+4.";
+        let fileContent = "";
+        
         if (fs.existsSync(filePath)) {
             fileContent = fs.readFileSync(filePath, 'utf8');
         }
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // 2. שימוש בנתיב המדויק שגוגל דורשת (v1/models)
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
         
         const response = await fetch(url, {
             method: 'POST',
@@ -27,24 +30,27 @@ module.exports = async (req, res) => {
         });
 
         const data = await response.json();
-        if (data.error) throw new Error(data.error.message);
 
-        // חילוץ הטקסט וניקוי יסודי
+        // בדיקה אם גוגל החזירה שגיאת מודל
+        if (data.error) {
+            console.error("API Error:", data.error.message);
+            return res.status(200).json({ weekly_plan: [], error: data.error.message });
+        }
+
+        // 3. חילוץ הנתונים וניקוי סימני Markdown
         let rawText = data.candidates[0].content.parts[0].text;
-        
-        // מוצא את המקום שבו המערך [ מתחיל ונגמר ]
         const start = rawText.indexOf('[');
         const end = rawText.lastIndexOf(']') + 1;
         
-        if (start === -1 || end === 0) throw new Error("Invalid JSON structure");
+        if (start === -1) throw new Error("No JSON array found");
         
         const cleanJson = JSON.parse(rawText.substring(start, end));
 
-        // שליחה בפורמט שהאתר שלך מצפה לו (weekly_plan)
+        // 4. שליחה בפורמט שהאתר מצפה לו
         res.status(200).json({ weekly_plan: cleanJson });
 
     } catch (err) {
         console.error("Processing Error:", err.message);
-        res.status(200).json({ weekly_plan: [] }); 
+        res.status(200).json({ weekly_plan: [] });
     }
 };
