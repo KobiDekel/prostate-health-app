@@ -14,7 +14,7 @@ module.exports = async (req, res) => {
         let fileContent = "Instructions: Create a 7-day meal plan for Gleason 3+4.";
         
         // ניסיון לקרוא את הקובץ רק אם הספרייה מותקנת והקובץ קיים
-        const filePath = path.join(process.cwd(), 'DesignRef.docx');
+        const filePath = path.join(process.cwd(), 'sources.txt');
         if (mammoth && fs.existsSync(filePath)) {
             const fileBuffer = fs.readFileSync(filePath);
             const result = await mammoth.extractRawText({ buffer: fileBuffer });
